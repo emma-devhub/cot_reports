@@ -79,8 +79,21 @@ async function init() {
   try {
     pageInfo = await chrome.tabs.sendMessage(tab.id, { type: 'DETECT' });
   } catch {
-    setResult('Content script not ready. Reload the page and try again.', 'error');
-    return;
+    // Content script not present (tab was open before extension loaded).
+    // Inject it programmatically and retry once.
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js'],
+      });
+      pageInfo = await chrome.tabs.sendMessage(tab.id, { type: 'DETECT' });
+    } catch (err) {
+      setResult(
+        'Cannot access this page. Navigate to a Greenhouse, Ashby, or Workday job posting and try again.',
+        'error',
+      );
+      return;
+    }
   }
 
   // Platform badge

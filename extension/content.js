@@ -121,23 +121,32 @@ function fillFields(answers) {
 
 // ── Message listener ───────────────────────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  switch (msg.type) {
-    case 'DETECT':
-      sendResponse({
-        platform: detectPlatform(),
-        url:      window.location.href,
-        title:    document.title,
-        fields:   discoverFields(),
-      });
-      break;
+// Guard against duplicate registration when injected into an already-loaded tab.
+if (!window.__jobBotListenerRegistered) {
+  window.__jobBotListenerRegistered = true;
 
-    case 'FILL':
-      sendResponse({ filled: fillFields(msg.answers) });
-      break;
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    switch (msg.type) {
+      case 'PING':
+        sendResponse({ alive: true });
+        break;
 
-    default:
-      sendResponse({ error: 'unknown message type' });
-  }
-  return true;
-});
+      case 'DETECT':
+        sendResponse({
+          platform: detectPlatform(),
+          url:      window.location.href,
+          title:    document.title,
+          fields:   discoverFields(),
+        });
+        break;
+
+      case 'FILL':
+        sendResponse({ filled: fillFields(msg.answers) });
+        break;
+
+      default:
+        sendResponse({ error: 'unknown message type' });
+    }
+    return true;
+  });
+}
